@@ -2,7 +2,7 @@
 
 In this project, a simple compiler for a subset of Python, called MiniPython, was developed using the SableCC tool. The project includes the stages of lexical analysis, syntactic analysis, abstract syntax tree creation, and semantic analysis.
 
-# 1. Lexical Analysis
+## 1. Lexical Analysis
 
 Lexical analysis is the first phase of translation, where the input text is split into lexical units (tokens) such as keywords, identifiers, and numbers.
 The file LexerTest1.java is provided, containing a main method which calls the lexical analyzer and prints the execution results to the screen.
@@ -18,7 +18,7 @@ Then compile and run:
     javac LexerTest1.java
     java LexerTest1 minipythonexample.py
 
-# 2. Syntactic Analysis
+## 2. Syntactic Analysis
 
 Syntactic analysis checks whether the sequence of tokens follows the grammatical rules of the language, creating a syntax tree.
 
@@ -31,7 +31,7 @@ Again, from the project root directory:
     javac ParserTest1.java
     java ParserTest1 minipythonexample.py
 
-# 3. Abstract Syntax Tree (AST) Creation
+## 3. Abstract Syntax Tree (AST) Creation
    
 The goal of building an abstract syntax tree is to discard unnecessary elements and nodes from the syntax tree that are no longer needed for the subsequent compilation stages. Up to the syntactic analysis phase, specific tokens and grammar levels were needed to enforce precedence and resolve potential conflicts. After the syntactic structure has been determined, these extra details are no longer necessary.
 
@@ -44,7 +44,7 @@ Procedure:
 (The example.py file is included.)
 The output now shows the abstract syntax tree structure.
 
-# 4.Symbol Table and Semantic Analysis
+## 4.Symbol Table and Semantic Analysis
    
 A symbol table is created to store necessary information for semantic analysis, such as methods and variables. The symbol table is then used by a type checker. The checking process is performed on the already constructed abstract syntax tree (AST).
 
