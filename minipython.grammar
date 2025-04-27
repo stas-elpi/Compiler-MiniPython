@@ -1,0 +1,257 @@
+Package minipython;
+
+Helpers
+    digit = ['0' .. '9'];
+    letter = ['a' .. 'z'] | ['A' .. 'Z']; 
+    cr = 13; 
+    lf = 10;
+    all = [0..127]; 
+    eol = lf | cr | cr lf ;
+    not_eol = [all - [cr + lf]];
+
+
+Tokens
+    tab = 9;
+    plus = '+';
+    minus = '-';
+    mult = '*';
+    dmult = '**';
+    div = '/';
+    eq = '=';
+    exclam = '!';
+    dictt = 'dict';
+    def = 'def';
+    logic_plus = '&&';
+    l_par = '(';
+    r_par = ')';
+    l_br = '[';
+    r_br = ']';
+    comma = ',';
+    qmark = '?';
+    gqmark = ';';
+    if = 'if';
+    elif = 'elif';
+    else = 'else';
+    while = 'while';
+    print = 'print';
+    assert = 'assert';
+    return = 'return';
+    less = '<';
+    great = '>';
+    true = 'true';
+    semi = ':';
+    false = 'false';
+    quote = '"';
+    dot = '.';
+    mod = '%';
+    ne = '!=';
+    ge = '>=';
+    le = '<=';
+    eqeq = '==';
+    and = 'and';
+    or = 'or';
+    not = 'not';
+    none = 'None';
+    import = 'import';
+    from = 'from';
+    as = 'as';
+    in = 'in';
+    for = 'for';
+    mineq = '-=';
+    diveq = '/=';
+    len = 'len';
+    ascii = 'ascii';
+    max = 'max';
+    min = 'min';
+    blank = (' ' | lf | cr);
+    line_comment = '#' not_eol* eol; 
+    number = digit+ | (digit+ '.' digit+);
+    id = letter (letter | digit | '_')*;
+    string = '"' not_eol* '"'| ''' not_eol* ''';
+
+Ignored Tokens
+    blank, line_comment;
+
+Productions
+  programme = commands*{-> New programme( [commands] ) };
+
+commands =
+    {func} function {->New commands.func(function)}|
+    {stat} statement {->New commands.stat(statement)};
+
+function = {def} def id l_par argument? r_par semi statement{->New function.def(id,[argument],statement)};
+
+eqvalue = {eqv} eq value{->New eqvalue.eqv(value.expression)};
+
+nextvalue = {nextv}comma id eqvalue?{->New nextvalue.nextv(id,[eqvalue])};
+
+argument = {arg}id eqvalue? nextvalue*{->New argument.arg(id,[eqvalue],[nextvalue])};
+
+comma_expression = {comma_exp}comma expression{->New comma_expression.comma_exp(expression)};
+
+statement =
+            {if} tab* if comparison semi statement {-> New statement.if(comparison, statement)} |
+            {while} tab* while comparison semi statement {-> New statement.while(comparison, statement)}|
+            {for} tab* for [id1]:id in [id2]:id semi statement {-> New statement.for(id1,id2, statement)} |
+            {return} tab* return expression {-> New statement.return(expression)} |
+            {print} tab* print [exp1]:expression [exp2]:comma_expression* {-> New statement.print(exp1, [exp2])}|
+            {assign} tab* id eq expression {-> New statement.assign(id,expression)}|
+            {assignminus} tab* id mineq expression {-> New statement.assignminus(id,expression)}|
+            {assigndiv} tab* id diveq expression {-> New statement.assigndiv(id,expression)} |
+            {table}  tab* id l_br [exp1]:expression r_br eq [exp2]:expression{-> New statement.table(id,exp1,exp2)}|
+            {assert}  tab* assert [exp1]:expression [exp2]:comma_expression? {-> New statement.assert(exp1,[exp2])}|
+            {functioncall} tab* function_call{-> function_call.statement} |
+            {import_prod} tab* import_prod{->import_prod.statement};  
+
+comparison =    {and_comparison} and_comparison {-> and_comparison.comparison}|
+                {or} comparison or and_comparison{->New comparison.or(comparison,and_comparison.comparison)} ;
+
+and_comparison {-> comparison} = {not_comparison} not_comparison {-> not_comparison.comparison}|
+                                {and_comparison} and_comparison and not_comparison {->New comparison.and_comparison(and_comparison.comparison,not_comparison.comparison)};
+
+not_comparison {-> comparison}=
+                                {not_comparison} not not_comparison {-> New comparison.not_comparison(not_comparison.comparison)}|
+                                {lessc} [lpar]:expression less [rpar]:expression {->New comparison.lessc(lpar,rpar)} |
+                                {greatc} [lpar]:expression great [rpar]:expression {->New comparison.greatc(lpar,rpar)}|
+                                {lesseq} [lpar]:expression le [rpar]:expression {->New comparison.lesseq(lpar,rpar)}|
+                                {greateq} [lpar]:expression ge [rpar]:expression {->New comparison.greateq(lpar,rpar)}|
+                                {noeq} [lpar]:expression ne [rpar]:expression {->New comparison.noeq(lpar,rpar)}|
+                                {eqq} [lpar]:expression eqeq [rpar]:expression {->New comparison.eqq(lpar,rpar)}|
+                                {paren} l_par comparison r_par {->comparison} |
+                                {true} true {->New comparison.true()}|
+                                {false} false {->New comparison.false()};
+
+expression = {term} term {->term.expression}|
+            {add} expression plus term {-> New expression.add(expression, term.expression)}|
+            {sub} expression minus term {-> New expression.sub(expression, term.expression)};
+    
+
+term {->expression}=    {factor} factor {-> factor.expression} |
+                        {mul} term mult factor {-> New expression.mul(term.expression , factor.expression)} |
+                        {div} term div factor{-> New expression.div(term.expression , factor.expression)}  |
+                        {mod} term mod factor {-> New expression.mod(term.expression , factor.expression)}  ;
+    
+
+factor {->expression} = {primary} primary {->primary.expression }|
+                        {exponent} factor dmult primary  {-> New expression.exponent(factor.expression, primary.expression)};
+                    
+primary {->expression}=
+                    {id_bar} id l_br expression r_br  {->New expression.id_bar(id,expression)}|
+                    {function_call} function_call  {-> New expression.function_call(function_call.statement)} |
+                    {value_exp} value {-> value.expression} |
+                    {lenex} len l_par expression r_par {-> New expression.lenex(expression)}|
+                    {ascii_id} ascii l_par id r_par{-> New expression.ascii_id(id)} |
+                    {maxvalue} max l_par value comma_value* r_par  {-> New expression.maxvalue(value.expression,[comma_value])}| 
+                    {minvalue} min l_par value comma_value* r_par {-> New expression.minvalue(value.expression,[comma_value])}| 
+                    {paren} l_par expression r_par {->expression} |
+                    {barexp} l_br value comma_value* r_br {-> New expression.barexp(value.expression,[comma_value])};
+
+asidentifier= {asidentifier}as id{->New asidentifier.asidentifier(id) };
+
+module_id = {module_id}comma module asidentifier? {->New module_id.module_id(module,[asidentifier]) };
+
+comma_id = {comma_id} comma id asidentifier?{->New comma_id.comma_id(id,[asidentifier])};
+
+comma_value = {comma_value} comma value {-> New comma_value.comma_value(value.expression) };
+
+import_prod {->statement}= {import_prod} import module asidentifier? module_id* {->New statement.import_prod(module,[asidentifier],[module_id])}|
+        {from} from module import id asidentifier? comma_id* {->New statement.from(module,id,[asidentifier],[comma_id])};
+
+id_dot = {id_dot}id dot{-> New id_dot.id_dot(id)};
+
+module = {module}id_dot* id {->New module.module([id_dot],id) };
+
+argslist = {argslist} [exp1]:expression [exp2]:comma_expression* {-> New argslist.argslist(exp1,[exp2])};
+
+function_call {-> statement} = {functioncall} id l_par argslist? r_par {-> New statement.functioncall(id ,[argslist])};
+
+
+
+value {->expression}=
+                    {identifier} id {-> New expression.identifier(id)}|
+                    {function_id} id dot function_call {-> New expression.function_id(id,function_call.statement) }|
+                    {number} number {-> New expression.number(number)} |
+                    {string} string    {-> New expression.string(string)}|
+                    {none} none    {-> New expression.none(none)};
+
+
+
+Abstract Syntax Tree
+	programme = commands*;
+
+	commands = {stat} statement|
+				{func}function;
+    
+    function = {def} id argument* statement;
+
+    eqvalue = {eqv} expression;
+
+    nextvalue = {nextv} id eqvalue*;
+
+    argument = {arg} id eqvalue* nextvalue*;
+
+    comma_expression = {comma_exp} expression;
+
+    asidentifier= {asidentifier} id;
+
+    module_id = {module_id} module asidentifier*;
+
+    comma_id = {comma_id} id asidentifier*;
+
+    comma_value = {comma_value} expression ;
+
+    id_dot = {id_dot} id ;
+
+    module = {module} id_dot* id ;
+
+    argslist = {argslist} [l]:expression [r]:comma_expression*;
+
+    statement =     {if} comparison statement |
+                    {while} comparison statement |
+                    {for} [id1]:id [id2]:id statement |
+                    {return} expression |
+                    {print} [l]:expression [r]:comma_expression*|
+                    {assign} id expression |
+                    {assignminus} id expression|
+                    {assigndiv} id expression |
+                    {table} id [l]:expression [r]:expression|
+                    {assert}  [l]:expression [r]:comma_expression* |
+                    {functioncall} id argslist* |
+                    {import_prod} module asidentifier* module_id*|
+                    {from} module id asidentifier* comma_id*;  
+
+
+    comparison =    {or} [l]:comparison [r]:comparison |
+                    {and_comparison} [l]:comparison [r]:comparison |
+                    {not_comparison} comparison |
+                    {lessc} [lpar]:expression [rpar]:expression |
+                    {greatc} [lpar]:expression [rpar]:expression |
+                    {lesseq} [lpar]:expression [rpar]:expression |
+                    {greateq} [lpar]:expression [rpar]:expression |
+                    {noeq} [lpar]:expression [rpar]:expression |
+                    {eqq} [lpar]:expression [rpar]:expression |
+                    {true} |
+                    {false} ;
+
+
+expression =
+            {add} [l]:expression [r]:expression |
+            {sub} [l]:expression [r]:expression |
+            {mul} [l]:expression [r]:expression |
+            {div} [l]:expression [r]:expression |
+            {mod} [l]:expression [r]:expression |
+            {exponent} [l]:expression [r]:expression |
+            {id_bar} id expression |
+            {function_call} statement |
+            {identifier} id |
+            {function_id} id statement|
+            {number} number  |
+            {string} string  |
+            {none} none  |
+            {lenex} expression |
+            {ascii_id} id |
+            {maxvalue} expression comma_value* | 
+            {minvalue} expression comma_value* | 
+            {barexp} expression comma_value* ;
+
+
